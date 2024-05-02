@@ -1,0 +1,111 @@
+# A script for manipulating gene expression data 
+#setwd("E:/Study/Projects/BIOINFORMATICs/Gene expression data manuplation _1")
+
+# loda libraries 
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(GEOquery)
+```
+
+
+#read the data 
+```{r}
+data <- read.csv("GSE183947_fpkm.csv")
+```
+
+#To check the dimension of data 
+
+```{r}
+dim(data)
+```
+#get matadata or download 
+
+```{r}
+GSE <- getGEO(GEO = 'GSE183947', GSEMatrix = TRUE)
+```
+#To see about the data 
+
+```{r}
+GSE
+```
+
+
+```{r}
+metadata <- pData(phenoData(GSE[[1]]))
+head(metadata)
+
+```
+
+# To extract the important columns
+
+#```{r}
+#metadat.subset <- select(metadata,c(1,10,11,17))
+#```
+
+#      or  by using pipe(%>% use 4 going inside ) function
+```{r}
+
+metadat.modified <- metadata %>%
+  select(1,10,11,17)%>%
+  rename(tissue = characteristics_ch1)%>% # rename(function) is use to chane the name of column 
+  rename(metastasis = characteristics_ch1.1)%>%
+  mutate(tissue = gsub("tissue:","",tissue))%>% # mutate (function is used to change or remove in column)
+  mutate(metastasis = gsub("metastasis:","", metastasis)) # gsub means get subsitute 
+
+
+
+```
+
+
+#reshape the data
+
+```{r}
+data.long <- data %>%
+  rename(gene = X)%>%
+  gather(key = "sample" ,value = "FPKM" ,-gene) # gathe is fuction which convert to wide format to long format 
+  
+```
+
+```{r}
+# Save the data to a CSV file
+#write.csv(data.long, file = "E:/Study/Projects/BIOINFORMATICs/Gene expression data manuplation _1.csv", row.names = FALSE)
+
+```
+
+
+# join dataframes  == data.long + metadata.modified 
+
+
+```{r}
+Data.long <- data.long %>%
+  left_join(.,metadat.modified, by = c("sample" = "description")) 
+head(data.long)
+```
+
+
+
+```{r}
+# Save the data to a CSV file
+write.csv(data.long, file = "E:/Study/Projects/BIOINFORMATICs/Data.long _1.csv", row.names = FALSE)
+
+```
+
+
+#explore data 
+
+
+
+```{r}
+Data.long %>%
+  filter(gene == "TSPAN6" | gene == "TNMD")%>% #filter(function) is used extract raws
+  group_by(gene,tissue)%>%
+  summarize(mean_FPKM = mean(FPKM),
+            median_FPKM = median((FPKM)))
+
+```
+  
+
+
+
